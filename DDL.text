@@ -1,0 +1,181 @@
+SQL DDL:
+USE LibrarySystem;
+GO
+
+CREATE TABLE Category (
+    categoryID   INT          PRIMARY KEY,
+    categoryName VARCHAR(20)  NOT NULL
+);
+
+CREATE TABLE Authors (
+    authorID  INT         PRIMARY KEY,
+    firstName VARCHAR(24) NOT NULL,
+    lastName  VARCHAR(24) NOT NULL
+);
+
+CREATE TABLE Book (
+    bookID          INT          PRIMARY KEY,
+    ISBN            BIGINT       NOT NULL,
+    title           VARCHAR(50)  NOT NULL,
+    publisher       VARCHAR(30)  NOT NULL,
+    publicationYear INT          NOT NULL,
+    description     VARCHAR(500) NOT NULL,
+    categoryID      INT          NOT NULL,
+    CONSTRAINT FK_Book_Category
+        FOREIGN KEY (categoryID) REFERENCES Category(categoryID)
+);
+
+CREATE TABLE BookCopies (
+    copyID         INT         PRIMARY KEY,
+    bookID         INT         NOT NULL,
+    barcode        BIGINT      UNIQUE NOT NULL,
+    shelfLocation  VARCHAR(24) NOT NULL,
+    bookingStatus  VARCHAR(24) NOT NULL
+        CONSTRAINT CHK_CopyStatus CHECK (bookingStatus IN
+            ('Available','CheckedOut','Reserved','Lost')),
+    purchaseDate   DATE        NOT NULL,
+    CONSTRAINT FK_Copies_Book
+        FOREIGN KEY (bookID) REFERENCES Book(bookID)
+);
+
+CREATE TABLE Users (
+    userID           INT          PRIMARY KEY,
+    firstName        VARCHAR(24)  NOT NULL,
+    lastName         VARCHAR(24)  NOT NULL,
+    email            VARCHAR(100) NOT NULL UNIQUE,
+    userType         VARCHAR(15)
+        CONSTRAINT CHK_UserType CHECK (userType IN
+            ('Student','Faculty','Guest')),
+    registrationDate DATE         NOT NULL
+);
+
+CREATE TABLE user_phone_number (
+    phoneNumber BIGINT NOT NULL,
+    userID      INT    NOT NULL,
+    PRIMARY KEY (phoneNumber, userID),
+    CONSTRAINT FK_UserPhone
+        FOREIGN KEY (userID) REFERENCES Users(userID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Staff (
+    staffID   INT          PRIMARY KEY,
+    email     VARCHAR(100) UNIQUE NOT NULL,
+    position  VARCHAR(24)  NOT NULL,
+    firstName VARCHAR(24)  NOT NULL,
+    lastName  VARCHAR(24)  NOT NULL
+);
+
+CREATE TABLE staff_phone_number (
+    phoneNumber BIGINT NOT NULL,
+    staffID     INT    NOT NULL,
+    PRIMARY KEY (phoneNumber, staffID),
+    CONSTRAINT FK_StaffPhone
+        FOREIGN KEY (staffID) REFERENCES Staff(staffID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE PC (
+    pcID    INT PRIMARY KEY,
+    staffID INT NOT NULL,
+    CONSTRAINT FK_PC_Staff
+        FOREIGN KEY (staffID) REFERENCES Staff(staffID)
+);
+
+CREATE TABLE Locker (
+    lockerNumber  INT         PRIMARY KEY,
+    bookingStatus VARCHAR(24) NOT NULL
+        CONSTRAINT CHK_LockerStatus CHECK (bookingStatus IN
+            ('Available','Booked','Maintenance'))
+);
+
+CREATE TABLE LockerBooking (
+    bookingID    INT      PRIMARY KEY,
+    lockerNumber INT      NOT NULL,
+    userID       INT      NOT NULL,
+    startTime    DATETIME NOT NULL,
+    endTime      DATETIME NOT NULL,
+    CONSTRAINT FK_LB_Locker
+        FOREIGN KEY (lockerNumber) REFERENCES Locker(lockerNumber),
+    CONSTRAINT FK_LB_User
+        FOREIGN KEY (userID) REFERENCES Users(userID)
+);
+
+CREATE TABLE Reservation (
+    reserveID INT PRIMARY KEY,
+    userID    INT NOT NULL,
+    bookID    INT NOT NULL,
+    copyID    INT NOT NULL,
+    CONSTRAINT FK_Res_User
+        FOREIGN KEY (userID) REFERENCES Users(userID),
+    CONSTRAINT FK_Res_Book
+        FOREIGN KEY (bookID) REFERENCES Book(bookID),
+    CONSTRAINT FK_Res_Copy
+        FOREIGN KEY (copyID) REFERENCES BookCopies(copyID)
+);
+
+CREATE TABLE Transactions (
+    transactionID INT  PRIMARY KEY,
+    copyID        INT  NOT NULL,
+    userID        INT  NOT NULL,
+    checkoutDate  DATE NOT NULL,
+    dueDate       DATE NOT NULL,
+    returnDate    DATE NULL,        -- NULL until the book is returned
+    renewalCount  INT  DEFAULT 0,
+    CONSTRAINT FK_Trans_User
+        FOREIGN KEY (userID) REFERENCES Users(userID),
+    CONSTRAINT FK_Trans_Copy
+        FOREIGN KEY (copyID) REFERENCES BookCopies(copyID)
+);
+
+CREATE TABLE Fines (
+    fineID        INT          PRIMARY KEY,
+    userID        INT          NOT NULL,
+    transactionID INT          NOT NULL,
+    amount        DECIMAL(8,2) NOT NULL,
+    reason        VARCHAR(100) NOT NULL,
+    paymentStatus VARCHAR(24)  NOT NULL
+        CONSTRAINT CHK_FineStatus CHECK (paymentStatus IN
+            ('Pending','Paid','Waived')),
+    paymentDate   DATE         NULL,
+    CONSTRAINT FK_Fine_User
+        FOREIGN KEY (userID) REFERENCES Users(userID),
+    CONSTRAINT FK_Fine_Trans
+        FOREIGN KEY (transactionID) REFERENCES Transactions(transactionID)
+);
+
+CREATE TABLE PC_usage_log (
+    logID     INT      PRIMARY KEY,
+    userID    INT      NOT NULL,
+    pcID      INT      NOT NULL,
+    startTime DATETIME NOT NULL,
+    endTime   DATETIME NOT NULL,
+    CONSTRAINT FK_Log_User
+        FOREIGN KEY (userID) REFERENCES Users(userID),
+    CONSTRAINT FK_Log_PC
+        FOREIGN KEY (pcID) REFERENCES PC(pcID)
+);
+
+CREATE TABLE Author_of_the_Book (
+    bookID   INT NOT NULL,
+    authorID INT NOT NULL,
+    PRIMARY KEY (bookID, authorID),
+    CONSTRAINT FK_AOB_Book
+        FOREIGN KEY (bookID) REFERENCES Book(bookID)
+        ON DELETE CASCADE,
+    CONSTRAINT FK_AOB_Author
+        FOREIGN KEY (authorID) REFERENCES Authors(authorID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Staff_serve_Users (
+    staffID INT NOT NULL,
+    userID  INT NOT NULL,
+    PRIMARY KEY (staffID, userID),
+    CONSTRAINT FK_SSU_Staff
+        FOREIGN KEY (staffID) REFERENCES Staff(staffID)
+        ON DELETE CASCADE,
+    CONSTRAINT FK_SSU_User
+        FOREIGN KEY (userID) REFERENCES Users(userID)
+        ON DELETE CASCADE
+);

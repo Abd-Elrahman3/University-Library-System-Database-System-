@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library System</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:   #1B2A4A;
+  --blue:   #2E4A7A;
+  --accent: #4A7AB5;
+  --light:  #D6E4F0;
+  --bg:     #F4F6FA;
+  --card:   #FFFFFF;
+  --border: #DDE3ED;
+  --text:   #1a1a2e;
+  --muted:  #6b7280;
+  --success:#16a34a;
+  --error:  #dc2626;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(30,50,90,.08);
+}
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg);
+       color: var(--text); font-size: 14px; }
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar { width: 230px; min-width: 230px; background: var(--navy);
+           display: flex; flex-direction: column; padding: 0 0 24px;
+           position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.logo { padding: 22px 20px 18px; font-size: 16px; font-weight: 700;
+        color: #fff; border-bottom: 1px solid rgba(255,255,255,.1); }
+.logo span { color: var(--light); font-weight: 400; font-size: 12px;
+             display: block; margin-top: 2px; }
+.nav-group { padding: 14px 14px 4px; font-size: 10px; font-weight: 600;
+             color: rgba(255,255,255,.4); letter-spacing: .1em; text-transform: uppercase; }
+.nav-btn { display: flex; align-items: center; gap: 9px; width: calc(100% - 12px);
+           padding: 8px 14px; background: none; border: none; color: rgba(255,255,255,.75);
+           font-size: 13px; cursor: pointer; text-align: left; border-radius: 6px;
+           margin: 1px 6px; transition: all .15s; }
+.nav-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav-btn.active { background: var(--accent); color: #fff; }
+.nav-btn .icon { font-size: 14px; width: 18px; text-align: center; }
+
+.main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 22px; font-weight: 700; color: var(--navy); }
+.page-header p  { color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+.card { background: var(--card); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 22px 24px;
+        box-shadow: var(--shadow); margin-bottom: 20px; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--navy);
+              margin-bottom: 16px; padding-bottom: 10px;
+              border-bottom: 1px solid var(--border); }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 600; color: var(--muted);
+        text-transform: uppercase; letter-spacing: .04em; }
+input, select, textarea {
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px;
+  font-size: 13px; font-family: inherit; background: #fff; color: var(--text);
+  transition: border-color .15s, box-shadow .15s; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,122,181,.15); }
+textarea { resize: vertical; min-height: 72px; }
+
+.btn { padding: 9px 20px; border-radius: 7px; font-size: 13px; font-weight: 600;
+       cursor: pointer; border: none; transition: all .15s; }
+.btn-primary  { background: var(--navy); color: #fff; }
+.btn-primary:hover  { background: var(--blue); }
+.btn-secondary { background: none; border: 1px solid var(--border); color: var(--muted); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger  { background: none; border: 1px solid #fca5a5; color: var(--error); }
+.btn-danger:hover  { background: #fef2f2; }
+.btn-success { background: none; border: 1px solid #86efac; color: var(--success); }
+.btn-success:hover { background: #f0fdf4; }
+.btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+
+.query-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr));
+              gap: 12px; margin-bottom: 20px; }
+.query-btn { padding: 14px 16px; background: var(--card); border: 1px solid var(--border);
+             border-radius: var(--radius); cursor: pointer; text-align: left;
+             transition: all .15s; box-shadow: var(--shadow); }
+.query-btn:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(74,122,181,.15); }
+.query-btn .q-icon  { font-size: 20px; margin-bottom: 8px; }
+.query-btn .q-title { font-size: 13px; font-weight: 600; color: var(--navy); }
+.query-btn .q-desc  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.filter-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-end; }
+.filter-row .field { flex: 1; }
+
+.result-area { display: none; }
+.result-area.visible { display: block; }
+.result-title { font-size: 13px; font-weight: 600; color: var(--navy);
+                margin-bottom: 10px; display: flex; align-items: center;
+                justify-content: space-between; }
+.result-count { font-size: 11px; font-weight: 400; color: var(--muted); }
+.table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { background: var(--navy); color: #fff; padding: 9px 12px; text-align: left;
+     font-size: 11px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px;
+         font-size: 11px; font-weight: 600; }
+.badge-green  { background: #dcfce7; color: #15803d; }
+.badge-red    { background: #fee2e2; color: #b91c1c; }
+.badge-yellow { background: #fef9c3; color: #a16207; }
+.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 16px; }
+.tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 20px; text-align: center; cursor: pointer; box-shadow: var(--shadow);
+        transition: all .15s; }
+.tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.tile .t-icon { font-size: 30px; margin-bottom: 10px; }
+.tile .t-title { font-size: 13px; font-weight: 600; color: var(--navy); }
+.tile .t-desc  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+#toast { position: fixed; bottom: 28px; right: 28px; padding: 12px 20px;
+         border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 999;
+         display: none; box-shadow: 0 4px 20px rgba(0,0,0,.15); max-width: 360px; }
+#toast.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+#toast.error   { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+.spinner { display: none; width: 18px; height: 18px; border: 2px solid var(--border);
+           border-top-color: var(--accent); border-radius: 50%;
+           animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.search-row input { flex: 1; }
+.info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+            padding: 12px 16px; font-size: 12.5px; color: #1d4ed8; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="logo">📚 LibrarySystem
+      <span>Management Portal</span>
+    </div>
+
+    <div class="nav-group">Main</div>
+    <button class="nav-btn active" onclick="nav('dashboard', this)">
+      <span class="icon">🏠</span> Dashboard
+    </button>
+
+    <div class="nav-group">Add Records</div>
+    <button class="nav-btn" onclick="nav('add-user', this)">
+      <span class="icon">👤</span> Add User
+    </button>
+    <button class="nav-btn" onclick="nav('add-book', this)">
+      <span class="icon">📖</span> Add Book
+    </button>
+    <button class="nav-btn" onclick="nav('add-copy', this)">
+      <span class="icon">📄</span> Add Copy
+    </button>
+    <button class="nav-btn" onclick="nav('add-transaction', this)">
+      <span class="icon">🔄</span> Checkout Book
+    </button>
+    <button class="nav-btn" onclick="nav('add-fine', this)">
+      <span class="icon">💰</span> Add Fine
+    </button>
+    <button class="nav-btn" onclick="nav('add-pc', this)">
+      <span class="icon">🖥️</span> Add PC
+    </button>
+
+    <div class="nav-group">Reservations</div>
+    <button class="nav-btn" onclick="nav('reserve-book', this)">
+      <span class="icon">🔖</span> Reserve Book
+    </button>
+    <button class="nav-btn" onclick="nav('reserve-locker', this)">
+      <span class="icon">🔒</span> Reserve Locker
+    </button>
+    <button class="nav-btn" onclick="nav('reserve-pc', this)">
+      <span class="icon">💻</span> Reserve PC
+    </button>
+
+    <div class="nav-group">Actions</div>
+    <button class="nav-btn" onclick="nav('return-book', this)">
+      <span class="icon">↩️</span> Return Book
+    </button>
+    <button class="nav-btn" onclick="nav('pay-fine', this)">
+      <span class="icon">✅</span> Pay Fine
+    </button>
+    <button class="nav-btn" onclick="nav('cancel-reservation', this)">
+      <span class="icon">🗑️</span> Cancel Reservation
+    </button>
+    <button class="nav-btn" onclick="nav('cancel-locker', this)">
+      <span class="icon">🔓</span> Cancel Locker
+    </button>
+    <button class="nav-btn" onclick="nav('delete-user', this)">
+      <span class="icon">❌</span> Delete User
+    </button>
+
+    <div class="nav-group">Reports</div>
+    <button class="nav-btn" onclick="nav('queries', this)">
+      <span class="icon">🔍</span> Run Queries
+    </button>
+    <button class="nav-btn" onclick="nav('browse-category', this)">
+      <span class="icon">🗂️</span> Browse by Category
+    </button>
+    <button class="nav-btn" onclick="nav('search', this)">
+      <span class="icon">🔎</span> Search Books
+    </button>
+  </aside>
+
+  <main class="main">
+
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1>Library Management System</h1>
+        <p>Select an action from the sidebar or click a tile below.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile" onclick="navTo('add-user')">
+          <div class="t-icon">👤</div>
+          <div class="t-title">Add User</div>
+          <div class="t-desc">Register a new member</div>
+        </div>
+        <div class="tile" onclick="navTo('add-book')">
+          <div class="t-icon">📖</div>
+          <div class="t-title">Add Book</div>
+          <div class="t-desc">Add a new title</div>
+        </div>
+        <div class="tile" onclick="navTo('add-transaction')">
+          <div class="t-icon">🔄</div>
+          <div class="t-title">Checkout</div>
+          <div class="t-desc">Lend a book copy</div>
+        </div>
+        <div class="tile" onclick="navTo('reserve-book')">
+          <div class="t-icon">🔖</div>
+          <div class="t-title">Reserve Book</div>
+          <div class="t-desc">Hold a book for a user</div>
+        </div>
+        <div class="tile" onclick="navTo('reserve-locker')">
+          <div class="t-icon">🔒</div>
+          <div class="t-title">Reserve Locker</div>
+          <div class="t-desc">Book an available locker</div>
+        </div>
+        <div class="tile" onclick="navTo('reserve-pc')">
+          <div class="t-icon">💻</div>
+          <div class="t-title">Reserve PC</div>
+          <div class="t-desc">Log a PC session</div>
+        </div>
+        <div class="tile" onclick="navTo('queries')">
+          <div class="t-icon">🔍</div>
+          <div class="t-title">Run Queries</div>
+          <div class="t-desc">View reports & data</div>
+        </div>
+        <div class="tile" onclick="navTo('search')">
+          <div class="t-icon">🔎</div>
+          <div class="t-title">Search Books</div>
+          <div class="t-desc">Find books by title</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add-user" class="page">
+      <div class="page-header"><h1>Add User</h1><p>Register a new library member</p></div>
+      <div class="card">
+        <div class="card-title">User Details</div>
+        <div class="form-grid">
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="u-userID" placeholder="e.g. 6"></div>
+          <div class="field"><label>User Type</label>
+            <select id="u-userType">
+              <option value="Student">Student</option>
+              <option value="Faculty">Faculty</option>
+              <option value="Guest">Guest</option>
+            </select></div>
+          <div class="field"><label>First Name *</label>
+            <input type="text" id="u-firstName" placeholder="Ahmed"></div>
+          <div class="field"><label>Last Name *</label>
+            <input type="text" id="u-lastName" placeholder="Hassan"></div>
+          <div class="field full"><label>Email *</label>
+            <input type="email" id="u-email" placeholder="user@lib.eg"></div>
+          <div class="field"><label>Registration Date *</label>
+            <input type="date" id="u-registrationDate"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="insertUser()">Add User</button>
+          <button class="btn btn-secondary" onclick="clearForm('add-user')">Clear</button>
+          <div class="spinner" id="spin-add-user"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add-book" class="page">
+      <div class="page-header"><h1>Add Book</h1><p>Add a new book title to the catalogue</p></div>
+      <div class="card">
+        <div class="card-title">Book Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Book ID *</label>
+            <input type="number" id="b-bookID" placeholder="e.g. 6"></div>
+          <div class="field"><label>ISBN *</label>
+            <input type="number" id="b-ISBN" placeholder="9780000000000"></div>
+          <div class="field full"><label>Title *</label>
+            <input type="text" id="b-title" placeholder="Book title"></div>
+          <div class="field"><label>Publisher *</label>
+            <input type="text" id="b-publisher" placeholder="Publisher name"></div>
+          <div class="field"><label>Publication Year *</label>
+            <input type="number" id="b-publicationYear" placeholder="2024"></div>
+          <div class="field"><label>Category ID *</label>
+            <input type="number" id="b-categoryID" placeholder="1–5"></div>
+          <div class="field full"><label>Description *</label>
+            <textarea id="b-description" placeholder="Brief description..."></textarea></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="insertBook()">Add Book</button>
+          <button class="btn btn-secondary" onclick="clearForm('add-book')">Clear</button>
+          <div class="spinner" id="spin-add-book"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add-copy" class="page">
+      <div class="page-header"><h1>Add Book Copy</h1><p>Register a new physical copy</p></div>
+      <div class="card">
+        <div class="card-title">Copy Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Copy ID *</label>
+            <input type="number" id="c-copyID" placeholder="e.g. 8"></div>
+          <div class="field"><label>Book ID *</label>
+            <input type="number" id="c-bookID" placeholder="Existing book ID"></div>
+          <div class="field"><label>Barcode *</label>
+            <input type="number" id="c-barcode" placeholder="Unique barcode"></div>
+          <div class="field"><label>Shelf Location *</label>
+            <input type="text" id="c-shelfLocation" placeholder="e.g. A1-S3"></div>
+          <div class="field"><label>Status *</label>
+            <select id="c-bookingStatus">
+              <option value="Available">Available</option>
+              <option value="CheckedOut">CheckedOut</option>
+              <option value="Reserved">Reserved</option>
+              <option value="Lost">Lost</option>
+            </select></div>
+          <div class="field"><label>Purchase Date *</label>
+            <input type="date" id="c-purchaseDate"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="insertCopy()">Add Copy</button>
+          <button class="btn btn-secondary" onclick="clearForm('add-copy')">Clear</button>
+          <div class="spinner" id="spin-add-copy"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add-transaction" class="page">
+      <div class="page-header"><h1>Checkout Book</h1><p>Record a book being lent to a user</p></div>
+      <div class="card">
+        <div class="card-title">Checkout Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Transaction ID *</label>
+            <input type="number" id="t-transactionID" placeholder="e.g. 5"></div>
+          <div class="field"><label>Copy ID *</label>
+            <input type="number" id="t-copyID" placeholder="Available copy ID"></div>
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="t-userID" placeholder="Registered user ID"></div>
+          <div class="field"><label>Checkout Date *</label>
+            <input type="date" id="t-checkoutDate"></div>
+          <div class="field"><label>Due Date *</label>
+            <input type="date" id="t-dueDate"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="insertTransaction()">Record Checkout</button>
+          <button class="btn btn-secondary" onclick="clearForm('add-transaction')">Clear</button>
+          <div class="spinner" id="spin-add-transaction"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-add-fine" class="page">
+      <div class="page-header"><h1>Add Fine</h1><p>Issue a fine to a user</p></div>
+      <div class="card">
+        <div class="card-title">Fine Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Fine ID *</label>
+            <input type="number" id="f-fineID" placeholder="e.g. 4"></div>
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="f-userID" placeholder="User ID"></div>
+          <div class="field"><label>Transaction ID *</label>
+            <input type="number" id="f-transactionID" placeholder="Transaction ID"></div>
+          <div class="field"><label>Amount (EGP) *</label>
+            <input type="number" step="0.01" id="f-amount" placeholder="e.g. 20.00"></div>
+          <div class="field full"><label>Reason *</label>
+            <input type="text" id="f-reason" placeholder="e.g. Overdue book"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="insertFine()">Issue Fine</button>
+          <button class="btn btn-secondary" onclick="clearForm('add-fine')">Clear</button>
+          <div class="spinner" id="spin-add-fine"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-reserve-book" class="page">
+      <div class="page-header"><h1>Reserve Book</h1><p>Hold a book copy for a user</p></div>
+      <div class="info-box">💡 The Reservation ID is auto-generated. You only need to provide the User ID, Book ID, and Copy ID.</div>
+      <div class="card">
+        <div class="card-title">Reservation Details</div>
+        <div class="form-grid">
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="rb-userID" placeholder="Registered user ID"></div>
+          <div class="field"><label>Book ID *</label>
+            <input type="number" id="rb-bookID" placeholder="Book ID to reserve"></div>
+          <div class="field"><label>Copy ID *</label>
+            <input type="number" id="rb-copyID" placeholder="Available copy ID"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="reserveBook()">Reserve Book</button>
+          <button class="btn btn-secondary" onclick="clearForm('reserve-book')">Clear</button>
+          <div class="spinner" id="spin-reserve-book"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-reserve-locker" class="page">
+      <div class="page-header"><h1>Reserve Locker</h1><p>Book an available locker for a user</p></div>
+      <div class="info-box">💡 Booking ID is auto-generated. Check available lockers in Run Queries → Available Lockers.</div>
+      <div class="card">
+        <div class="card-title">Locker Booking Details</div>
+        <div class="form-grid">
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="lb-userID" placeholder="Registered user ID"></div>
+          <div class="field"><label>Locker Number *</label>
+            <input type="number" id="lb-lockerNumber" placeholder="e.g. 101"></div>
+          <div class="field"><label>Start Time *</label>
+            <input type="datetime-local" id="lb-startTime"></div>
+          <div class="field"><label>End Time *</label>
+            <input type="datetime-local" id="lb-endTime"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="reserveLocker()">Reserve Locker</button>
+          <button class="btn btn-secondary" onclick="clearForm('reserve-locker')">Clear</button>
+          <div class="spinner" id="spin-reserve-locker"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-reserve-pc" class="page">
+      <div class="page-header"><h1>Reserve PC</h1><p>Log a PC usage session for a user</p></div>
+      <div class="info-box">💡 Log ID is auto-generated. Make sure the PC ID exists in the PC table.</div>
+      <div class="card">
+        <div class="card-title">PC Session Details</div>
+        <div class="form-grid">
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="pc-userID" placeholder="Registered user ID"></div>
+          <div class="field"><label>PC ID *</label>
+            <input type="number" id="pc-pcID" placeholder="e.g. 1, 2, or 3"></div>
+          <div class="field"><label>Start Time *</label>
+            <input type="datetime-local" id="pc-startTime"></div>
+          <div class="field"><label>End Time *</label>
+            <input type="datetime-local" id="pc-endTime"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="reservePC()">Log PC Session</button>
+          <button class="btn btn-secondary" onclick="clearForm('reserve-pc')">Clear</button>
+          <div class="spinner" id="spin-reserve-pc"></div>
+        </div>
+      </div>
+    </div>
+    <div id="page-add-pc" class="page">
+  <div class="page-header"><h1>Add PC</h1><p>Register a new PC in the system</p></div>
+  <div class="info-box">💡 Make sure the Staff ID exists before adding a PC.</div>
+  <div class="card">
+    <div class="card-title">PC Details</div>
+    <div class="form-grid">
+      <div class="field"><label>PC ID *</label>
+        <input type="number" id="addpc-pcID" placeholder="e.g. 4, 5, 6"></div>
+      <div class="field"><label>Staff ID *</label>
+        <input type="number" id="addpc-staffID" placeholder="Assigned staff ID"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addPC()">Add PC</button>
+      <button class="btn btn-secondary" onclick="clearForm('add-pc')">Clear</button>
+      <div class="spinner" id="spin-add-pc"></div>
+    </div>
+  </div>
+</div>
+
+    <div id="page-return-book" class="page">
+      <div class="page-header"><h1>Return Book</h1><p>Mark a checked-out book as returned</p></div>
+      <div class="info-box">💡 Find the Transaction ID by running the "Checked Out" query in Run Queries.</div>
+      <div class="card">
+        <div class="card-title">Return Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Transaction ID *</label>
+            <input type="number" id="r-transactionID" placeholder="e.g. 1"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="returnBook()">Mark as Returned</button>
+          <div class="spinner" id="spin-return-book"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-pay-fine" class="page">
+      <div class="page-header"><h1>Pay Fine</h1><p>Mark a pending fine as paid</p></div>
+      <div class="info-box">💡 Find the Fine ID by running the "Unpaid Fines" query in Run Queries.</div>
+      <div class="card">
+        <div class="card-title">Fine Payment</div>
+        <div class="form-grid">
+          <div class="field"><label>Fine ID *</label>
+            <input type="number" id="pf-fineID" placeholder="e.g. 1"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="payFine()">Mark as Paid</button>
+          <div class="spinner" id="spin-pay-fine"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-cancel-reservation" class="page">
+      <div class="page-header"><h1>Cancel Reservation</h1><p>Remove a book reservation and free the copy</p></div>
+      <div class="info-box">💡 Find the Reserve ID by running "All Reservations" in Run Queries first. After cancelling, the book copy returns to "Available" automatically.</div>
+      <div class="card">
+        <div class="card-title">Reservation Details</div>
+        <div class="form-grid">
+          <div class="field"><label>Reserve ID *</label>
+            <input type="number" id="res-reserveID" placeholder="e.g. 1"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="cancelReservation()">Cancel Reservation</button>
+          <div class="spinner" id="spin-cancel-reservation"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-cancel-locker" class="page">
+      <div class="page-header"><h1>Cancel Locker Booking</h1><p>Release a locker booking and mark it available again</p></div>
+      <div class="info-box">💡 Find the Booking ID by running "All Locker Bookings" in Run Queries first.</div>
+      <div class="card">
+        <div class="card-title">Locker Booking Cancellation</div>
+        <div class="form-grid">
+          <div class="field"><label>Booking ID *</label>
+            <input type="number" id="cl-bookingID" placeholder="e.g. 1"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="cancelLockerBooking()">Cancel Locker Booking</button>
+          <div class="spinner" id="spin-cancel-locker"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-delete-user" class="page">
+      <div class="page-header"><h1>Delete User</h1><p>Permanently remove a user from the system</p></div>
+      <div class="card">
+        <div class="card-title">User Removal</div>
+        <div class="form-grid">
+          <div class="field"><label>User ID *</label>
+            <input type="number" id="du-userID" placeholder="e.g. 4"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="deleteUser()">Delete User</button>
+          <div class="spinner" id="spin-delete-user"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RUN QUERIES -->
+    <div id="page-queries" class="page">
+      <div class="page-header"><h1>Run Queries</h1><p>Click any button to run a query and see results below</p></div>
+      <div class="query-grid">
+        <button class="query-btn" onclick="runQuery('all_reservations','All Book Reservations')">
+          <div class="q-icon">🔖📚</div><div class="q-title">All Book Reservations</div>
+          <div class="q-desc">View Reserve IDs for cancellation</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('all_locker_bookings','All Locker Bookings')">
+          <div class="q-icon">🔒</div><div class="q-title">All Locker Bookings</div>
+          <div class="q-desc">View Booking IDs for cancellation</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('books_with_authors','Books & Authors')">
+          <div class="q-icon">📚</div><div class="q-title">Books & Authors</div>
+          <div class="q-desc">All titles with author and category</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('all_books','All Books')">
+          <div class="q-icon">📋</div><div class="q-title">All Books</div>
+          <div class="q-desc">Full book list with copy count</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('all_categories','All Categories')">
+          <div class="q-icon">🗂️</div><div class="q-title">All Categories</div>
+          <div class="q-desc">Categories and their book count</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('all_users','All Users')">
+          <div class="q-icon">👥</div><div class="q-title">All Users</div>
+          <div class="q-desc">All registered members</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('checked_out','Checked Out Books')">
+          <div class="q-icon">🔄</div><div class="q-title">Checked Out</div>
+          <div class="q-desc">Books not yet returned + transaction ID</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('unpaid_fines','Unpaid Fines')">
+          <div class="q-icon">💰</div><div class="q-title">Unpaid Fines</div>
+          <div class="q-desc">All pending fine payments</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('available_copies','Available Copies')">
+          <div class="q-icon">✅</div><div class="q-title">Available Copies</div>
+          <div class="q-desc">Free copies per book</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('available_lockers','Available Lockers')">
+          <div class="q-icon">🔓</div><div class="q-title">Available Lockers</div>
+          <div class="q-desc">Lockers free to book</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('active_locker_reservations','Active & Upcoming Locker Reservations')">
+          <div class="q-icon">🔒</div><div class="q-title">Locker Reservations</div>
+          <div class="q-desc">Active and upcoming bookings</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('locker_summary','Locker Summary')">
+          <div class="q-icon">📊</div><div class="q-title">Locker Summary</div>
+          <div class="q-desc">Locker status breakdown</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('top_borrowers','Top Borrowers')">
+          <div class="q-icon">🏆</div><div class="q-title">Top Borrowers</div>
+          <div class="q-desc">Most active library users</div>
+        </button>
+        <button class="query-btn" onclick="runQuery('pc_usage','PC Usage Log')">
+          <div class="q-icon">💻</div><div class="q-title">PC Usage Log</div>
+          <button class="query-btn" onclick="runQuery('all_pcs','All PCs')">
+            <div class="q-icon">🖥️</div><div class="q-title">All PCs</div>
+            <div class="q-desc">All PCs with assigned staff</div>
+          </button>
+          <button class="query-btn" onclick="runQuery('available_pcs','Available PCs')">
+            <div class="q-icon">🟢</div><div class="q-title">Available PCs</div>
+            <div class="q-desc">PCs not currently in use</div>
+          </button>
+        </button>
+      </div>
+
+      <div class="card result-area" id="result-area">
+        <div class="result-title">
+          <span id="result-title-text">Results</span>
+          <span class="result-count" id="result-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="result-thead"></thead>
+            <tbody id="result-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-browse-category" class="page">
+      <div class="page-header"><h1>Browse by Category</h1><p>View all books in a specific category</p></div>
+      <div class="card">
+        <div class="filter-row">
+          <div class="field">
+            <label>Category ID</label>
+            <input type="number" id="cat-id" placeholder="Enter category ID (1–5)">
+          </div>
+          <button class="btn btn-primary" onclick="browseCategory()" style="margin-bottom:0">
+            Browse
+          </button>
+          <div class="spinner" id="spin-browse-category"></div>
+        </div>
+        <div class="info-box" style="margin-bottom:0">
+          Available categories: 1 = Science, 2 = Literature, 3 = History, 4 = Technology, 5 = Mathematics
+        </div>
+      </div>
+      <div class="card result-area" id="cat-result-area">
+        <div class="result-title">
+          <span id="cat-result-title">Books in Category</span>
+          <span class="result-count" id="cat-result-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="cat-thead"></thead>
+            <tbody id="cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-search" class="page">
+      <div class="page-header"><h1>Search Books</h1><p>Search by title — results show all copies and availability</p></div>
+      <div class="card">
+        <div class="search-row">
+          <input type="text" id="search-input"
+                 placeholder="Type a book title and press Enter or click Search..."
+                 onkeydown="if(event.key==='Enter') searchBooks()">
+          <button class="btn btn-primary" onclick="searchBooks()">Search</button>
+          <div class="spinner" id="spin-search"></div>
+        </div>
+      </div>
+      <div class="card result-area" id="search-result-area">
+        <div class="result-title">
+          <span id="search-result-title">Results</span>
+          <span class="result-count" id="search-result-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="search-thead"></thead>
+            <tbody id="search-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+function nav(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 4000);
+}
+
+function spin(id, on) {
+  const el = document.getElementById('spin-' + id);
+  if (el) el.style.display = on ? 'inline-block' : 'none';
+}
+
+function clearForm(page) {
+  document.querySelectorAll('#page-' + page + ' input, #page-' + page + ' textarea')
+    .forEach(el => el.value = '');
+}
+
+async function post(url, data, spinId) {
+  spin(spinId, true);
+  try {
+    const res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    showToast(json.message, json.success ? 'success' : 'error');
+  } catch (err) {
+    showToast('Cannot reach the server. Is Flask running?', 'error');
+  }
+  spin(spinId, false);
+}
+
+function insertUser() {
+  post('/api/insert/user', {
+    userID: document.getElementById('u-userID').value,
+    firstName: document.getElementById('u-firstName').value,
+    lastName: document.getElementById('u-lastName').value,
+    email: document.getElementById('u-email').value,
+    userType: document.getElementById('u-userType').value,
+    registrationDate: document.getElementById('u-registrationDate').value
+  }, 'add-user');
+}
+
+function insertBook() {
+  post('/api/insert/book', {
+    bookID: document.getElementById('b-bookID').value,
+    ISBN: document.getElementById('b-ISBN').value,
+    title: document.getElementById('b-title').value,
+    publisher: document.getElementById('b-publisher').value,
+    publicationYear: document.getElementById('b-publicationYear').value,
+    description: document.getElementById('b-description').value,
+    categoryID: document.getElementById('b-categoryID').value
+  }, 'add-book');
+}
+
+function insertCopy() {
+  post('/api/insert/copy', {
+    copyID: document.getElementById('c-copyID').value,
+    bookID: document.getElementById('c-bookID').value,
+    barcode: document.getElementById('c-barcode').value,
+    shelfLocation: document.getElementById('c-shelfLocation').value,
+    bookingStatus: document.getElementById('c-bookingStatus').value,
+    purchaseDate: document.getElementById('c-purchaseDate').value
+  }, 'add-copy');
+}
+
+function insertTransaction() {
+  post('/api/insert/transaction', {
+    transactionID: document.getElementById('t-transactionID').value,
+    copyID: document.getElementById('t-copyID').value,
+    userID: document.getElementById('t-userID').value,
+    checkoutDate: document.getElementById('t-checkoutDate').value,
+    dueDate: document.getElementById('t-dueDate').value
+  }, 'add-transaction');
+}
+
+function insertFine() {
+  post('/api/insert/fine', {
+    fineID: document.getElementById('f-fineID').value,
+    userID: document.getElementById('f-userID').value,
+    transactionID: document.getElementById('f-transactionID').value,
+    amount: document.getElementById('f-amount').value,
+    reason: document.getElementById('f-reason').value
+  }, 'add-fine');
+}
+
+function reserveBook() {
+  post('/api/insert/reservation', {
+    userID: document.getElementById('rb-userID').value,
+    bookID: document.getElementById('rb-bookID').value,
+    copyID: document.getElementById('rb-copyID').value
+  }, 'reserve-book');
+}
+
+function reserveLocker() {
+  post('/api/insert/locker_booking', {
+    userID: document.getElementById('lb-userID').value,
+    lockerNumber: document.getElementById('lb-lockerNumber').value,
+    startTime: document.getElementById('lb-startTime').value,
+    endTime: document.getElementById('lb-endTime').value
+  }, 'reserve-locker');
+}
+
+function reservePC() {
+  post('/api/insert/pc_session', {
+    userID: document.getElementById('pc-userID').value,
+    pcID: document.getElementById('pc-pcID').value,
+    startTime: document.getElementById('pc-startTime').value,
+    endTime: document.getElementById('pc-endTime').value
+  }, 'reserve-pc');
+}
+function addPC() {
+  post('/api/insert/pc', {
+    pcID: document.getElementById('addpc-pcID').value,
+    staffID: document.getElementById('addpc-staffID').value
+  }, 'add-pc');
+}
+
+function returnBook() {
+  post('/api/update/return_book',
+    { transactionID: document.getElementById('r-transactionID').value },
+    'return-book');
+}
+
+function payFine() {
+  post('/api/update/pay_fine',
+    { fineID: document.getElementById('pf-fineID').value },
+    'pay-fine');
+}
+
+function cancelReservation() {
+  post('/api/delete/reservation',
+    { reserveID: document.getElementById('res-reserveID').value },
+    'cancel-reservation');
+}
+
+function cancelLockerBooking() {
+  post('/api/delete/locker_booking',
+    { bookingID: document.getElementById('cl-bookingID').value },
+    'cancel-locker');
+}
+
+function deleteUser() {
+  post('/api/delete/user',
+    { userID: document.getElementById('du-userID').value },
+    'delete-user');
+}
+
+async function runQuery(endpoint, title) {
+  document.getElementById('result-title-text').textContent = title;
+  document.getElementById('result-count').textContent = 'Loading...';
+  document.getElementById('result-area').classList.add('visible');
+  try {
+    const res  = await fetch('/api/query/' + endpoint);
+    const data = await res.json();
+    if (data.success === false) { showToast(data.message, 'error'); return; }
+    renderTable(data, 'result-thead', 'result-tbody');
+    document.getElementById('result-count').textContent = data.length + ' row(s)';
+  } catch (err) {
+    showToast('Cannot reach the server. Is Flask running?', 'error');
+  }
+}
+
+async function browseCategory() {
+  const id = document.getElementById('cat-id').value.trim();
+  if (!id) { showToast('Please enter a category ID.', 'error'); return; }
+  spin('browse-category', true);
+  document.getElementById('cat-result-area').classList.add('visible');
+  try {
+    const res  = await fetch('/api/query/books_by_category?id=' + encodeURIComponent(id));
+    const data = await res.json();
+    if (data.success === false) { showToast(data.message, 'error'); return; }
+    renderTable(data, 'cat-thead', 'cat-tbody');
+    document.getElementById('cat-result-title').textContent = 'Books in Category ' + id;
+    document.getElementById('cat-result-count').textContent = data.length + ' row(s)';
+  } catch (err) {
+    showToast('Cannot reach the server. Is Flask running?', 'error');
+  }
+  spin('browse-category', false);
+}
+
+async function searchBooks() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) { showToast('Please enter a search term.', 'error'); return; }
+  spin('search', true);
+  document.getElementById('search-result-area').classList.add('visible');
+  try {
+    const res  = await fetch('/api/query/search_books?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (data.success === false) { showToast(data.message, 'error'); return; }
+    renderTable(data, 'search-thead', 'search-tbody');
+    document.getElementById('search-result-title').textContent = 'Results for "' + q + '"';
+    document.getElementById('search-result-count').textContent = data.length + ' row(s)';
+  } catch (err) {
+    showToast('Cannot reach the server. Is Flask running?', 'error');
+  }
+  spin('search', false);
+}
+
+function renderTable(data, theadId, tbodyId) {
+  const thead = document.getElementById(theadId);
+  const tbody = document.getElementById(tbodyId);
+  if (!data.length) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="99" style="color:var(--muted);padding:16px;text-align:center">No records found.</td></tr>';
+    return;
+  }
+  const cols = Object.keys(data[0]);
+  thead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  tbody.innerHTML = data.map(row =>
+    '<tr>' + cols.map(c => {
+      const val = row[c] === null ? '—' : row[c];
+      if (c.toLowerCase().includes('status')) return `<td>${badge(String(val))}</td>`;
+      if (c === 'daysOverdue') {
+        const n = parseInt(val);
+        return `<td>${n > 0 ? `<span class="badge badge-red">${n} days late</span>` : `<span class="badge badge-green">On time</span>`}</td>`;
+      }
+      return `<td>${val}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+}
+
+function badge(val) {
+  const v = val.toLowerCase();
+  if (['available','paid','on time','active now'].some(s => v.includes(s)))
+    return `<span class="badge badge-green">${val}</span>`;
+  if (['pending','checkedout','reserved','upcoming','booked'].some(s => v.includes(s)))
+    return `<span class="badge badge-yellow">${val}</span>`;
+  if (['lost','maintenance','overdue'].some(s => v.includes(s)))
+    return `<span class="badge badge-red">${val}</span>`;
+  return `<span class="badge badge-blue">${val}</span>`;
+}
+</script>
+</body>
+</html>
